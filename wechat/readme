@@ -1,0 +1,59 @@
+
+
+						MySql相关操作：
+
+启动MySql : service mysqld start;
+关闭mysql : service mysqld stop;
+登录MySql : mysql -u root -p  
+
+Mysql开机自动启动：
+首先，通过chkconfig命令看看MySQL在不在可管理的列表中，
+命令是：chkconfig 
+list如果列表中没有mysqld这个，
+需要先用这个命令添加： chkconfig add mysqld
+然后用这个命令设置开机启动： chkconfig mysqld on
+最后确认一下是否设置成功：chkconfig 
+
+
+添加用户：
+增加一个用户user_2密码为123,让此用户只可以在localhost上登录，并可以对数据库test进行查询、插入、修改、删除的操作（localhost指本地主机，即MySQL数据库所在的那台主机），这样用户即使用知道user_2的密码，他也无法从网上直接访问数据库，只能通过MYSQL主机来操作test库。
+grant select,insert,update,delete on test.* to user_2@localhost identified by "123";(添加的用户在mysql中的user表中可查看)
+
+查看并创建DB：
+1、show databases;
+2、create database 库名;
+3、drop database 库名（删除）
+
+查看并建表TABLE：
+1、use 库名;
+2 创建表：create table test(id  int(5) primary key auto_increment,name varchar(20) NOT NULL,age int(3) default 18);  
+3 查看表的属性：desc  表名(查看表属性);
+4 修改表的某项属性：alter table 表名 change column 原属性(id ) 新属性(id int(3) ...);
+5 增加一列：alter table 表名  add  column  sex（属性） varchar(3);
+
+
+表的操作：
+1、插入数据；
+insert into 表名(属性1、属性2、属性3) value('1 ','ljw','22');
+2、查看表中内容：
+select * from 表名;
+3、修改数据：
+update tablename  set 属性1='######' where name='ljw';
+
+把test表中ljw的年龄改为22；
+update test set age='22' where name='ljw';
+
+4、删除数据；
+delete from test where name = 'ljw';
+
+5、删除DB、TABLE：
+drop  database  库名；
+drop  table  表名；
+
+编译mysq.cl文件:
+
+gcc -o mysql mysql.c -I/usr/include/mysql -L/usr/lib/mysql  -lmysqlclient
+
+
+
+
