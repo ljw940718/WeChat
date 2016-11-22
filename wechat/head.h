@@ -25,6 +25,10 @@ const char *user_name ="root";
 const char *passwd = "luxiao";
 const char *db_name = "WeChat";
 
+int sockfd;   //tcpfd                                   
+int udpfd;    //udpfd
+struct sockaddr_in cliaddr,seraddr;
+
 
 struct user_info
 {
@@ -43,11 +47,6 @@ struct contact
 };
 
 
-typedef struct result
-{
-	MYSQL_RES *u_res;
-	char buff[5];
-} Query_result;
 
 #define MAXSIZE     1024
 #define EPOLLEVENTS 100
@@ -111,8 +110,11 @@ void Find(int udpfd);
 void find_way_view();
 void query_way(char ch);
 void query_by_name(int udpfd);
+void handle_name(char ch,struct contact *con);
+
 void send_name(int udpfd,struct contact *con);
 void query_by_tel(int udpfd);
+void handle_tel(char ch,struct contact *con);
 void send_tel(int sockfd,struct contact *con);
 void print_attribute();//打印属性  姓名   联系方式   性别  
 void Error3();
@@ -125,10 +127,19 @@ void add_contactor(struct contact *contactor);
 
 //modify
 void Modify(int udpfd);
+void handle_option(int udpfd);
+void show_option();
+void handle_choise(char ch);
+void Modify(int udpfd);
+void submit_modify(struct contact *con,char flag); // 提交修改信息
+void modify_info(struct contact *con);
+void back();
+
 
 //delete
 void Delete(int udpfd);
-
+void delete_option(char ch,struct contact *con);
+void sure_delete(struct contact *con);
 //exit
 void Exit2();
 #endif

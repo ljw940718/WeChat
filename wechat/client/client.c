@@ -1,11 +1,5 @@
 #include"../head.h"
 
-int sockfd;
-int udpfd;
-struct sockaddr_in cliaddr,seraddr;  //注释
-
-MYSQL_RES *res;
-MYSQL_ROW  row;
 
 static void  Creat_ClientSocket(int port,const char *ip)
 {
@@ -291,60 +285,256 @@ void print_attribute()//打印属性  姓名   联系方式   性别
 
 void All(int udpfd)
 {
-	struct contact con;
-	con.flag = '1';
-	int size = sendto(udpfd,&con,sizeof(struct contact),0,(struct sockaddr*)(&seraddr),sizeof(seraddr));
-	if(size < 0)
+	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
+	if(con != NULL)
 	{
-		printf("sendto error !\n");
-	}
-	else
-	{
-		print_attribute();
-		char buff[MAXSIZE];
-		while(1)
+		con->flag = '1';
+		int size = sendto(udpfd,con,sizeof(struct contact),0,(struct sockaddr*)(&seraddr),sizeof(seraddr));
+		if(size < 0)
 		{
-			memset(buff,'\0',MAXSIZE);
-			int ser_length = sizeof(seraddr);
-			int size = recvfrom(udpfd,buff,MAXSIZE,0,(struct sockaddr*)(&seraddr),&ser_length);
-			if(size < 0)
+			printf("sendto error !\n");
+		}
+		else
+		{
+			print_attribute();
+			char buff[MAXSIZE];
+			while(1)
 			{
+				memset(buff,'\0',MAXSIZE);
+				int ser_length = sizeof(seraddr);
+				int size = recvfrom(udpfd,buff,MAXSIZE,0,(struct sockaddr*)(&seraddr),&ser_length);
+				if(size < 0)
+				{
+					printf("recvfrom error !\n");
+				}	
+				else
+				{
+					if(strcmp(buff,"no") == 0)
+					{
+						system("clear");
+						printf("this is a blank addresslist !\n");
+						break;
+					}
+					else if(strcmp(buff,"ok") == 0)
+					{
+						printf("\n\n  over ! ");
+						break;
+					}
+					else
+					{
+						printf("%s\n",buff);
+					}
+				}
+			}
+			printf("press enter anykey continue !\n");
+			getchar();
+			handle_option(udpfd);
+		}
+	}
+	free(con);
+	con =  NULL;
+}
+
+void handle_option(int udpfd)
+{
+	show_option();
+}
+
+void show_option()
+{
+	system("clear");
+	puts("\t---------------------------------------\n");
+	puts("\t*               options               *\n");
+	puts("\t---------------------------------------\n");
+	puts("\t*       1-Midify_contact_info         *\n");
+	puts("\t*       2-Delete  contact             *\n");
+	puts("\t*       3-Back_previous_page          *\n");
+	puts("\t---------------------------------------\n");
+
+	printf("\n\t\tplsase input your choise[_]\b\b");
+	char ch = getchar();
+	getchar();
+	handle_choise(ch);
+}
+void handle_choise(char ch)
+{
+	switch(ch)
+	{
+		case '1':	Modify(udpfd);		 	 break;
+		case '2':	Delete(udpfd);			 break;
+		case '3':   back();					 break;
+		default :   handle_option(udpfd);	 break;
+	}
+}
+void Modify(int udpfd)
+{
+	system("clear");
+	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
+	if(con != NULL )
+	{
+		con->flag = '5';
+		memset(con->name,'\0',20);
+		memset(con->tel,'\0',20);
+		memset(con->sex,'\0',5);
+
+		printf("plsase input contact name:");
+		scanf("%s",con->name);
+		getchar();
+		printf("please input contact  tel:");
+		scanf("%s",con->tel);
+		getchar();
+		printf("please input contact sex:");
+		scanf("%s",con->sex);
+		getchar();
+
+		printf("\n\nSure modify this contact intomation ?(y/n):");
+		char ch = getchar();
+		getchar();
+		
+		submit_modify(con,ch);
+	}
+}
+void submit_modify(struct contact *con,char ch)
+{
+	if( con != NULL)
+	{
+		switch(ch)
+		{
+			case 'y':	modify_info(con);		break; 
+			case 'n':   show_option();			break;
+			default :   show_option();			break;
+		}
+	}
+}
+void modify_info(struct contact *con)
+{
+	if( con != NULL)
+	{
+		int size = sendto(udpfd,con,sizeof(struct contact),0,(struct sockaddr*)(&seraddr),sizeof(seraddr));
+		if(size < 0)
+			printf("sendto error !\n");
+		else
+		{
+			char buff[5] = {'\0'};
+			int length = sizeof(seraddr);
+			int size = recvfrom(udpfd,buff,5,0,(struct sockaddr *)(&seraddr),&length);
+			if(size < 0)
 				printf("recvfrom error !\n");
-			}	
 			else
 			{
-				if(strcmp(buff,"no") == 0)
+				if(strcmp(buff,"ok") == 0)
 				{
 					system("clear");
-					printf("this is a blank addresslist !\n");
-					break;
+					printf("information modify success !press enter anykey continue\n");
+					getchar();
+					ShowMenus();
 				}
-				else if(strcmp(buff,"ok") == 0)
+				else if(strcmp(buff,"no") == 0)
 				{
-					printf("\n\n  over ! ");
-					break;
+					system("clear");
+					printf("information modify faild ！ press enter anykey continue\n");
+					getchar();
+					ShowMenus();
 				}
 				else
 				{
-					printf("%s\n",buff);
+					system("clear");
+					printf("this contact not exit ! press enter anykey continue ！");
+					getchar();
+					ShowMenus();
 				}
 			}
 		}
-		printf("press enter anykey continue !\n");
-		getchar();
-		ShowMenus();
+
 	}
 }
 
+void Delete(int udpfd)
+{
+    struct contact *con = (struct contact *)malloc(sizeof(struct contact));
+	if(con != NULL)
+	{
+		system("clear");
+		con->flag = '6';
+		memset(con->name,'\0',20);
+		printf("please input contact name :");
+		scanf("%s",con->name);
+		getchar();
+		printf("\n\nSure delete this contact ?(y/n):");
+		char ch = getchar();
+		getchar();
+		delete_option(ch,con);
+	}
+	free(con);
+	con = NULL;
+}
 
+void delete_option(char ch,struct contact *con)
+{
+	if(con != NULL)
+	{
+		switch(ch)
+		{
+			case 'y':	sure_delete(con);	break;
+			case 'n':	show_option();		break;
+			default :	show_option();		break;
+		}
+	}
+}
+
+void sure_delete(struct contact *con)
+{
+	if(con != NULL)
+	{
+		int size = sendto(udpfd,con,sizeof(struct contact),0,(struct sockaddr *)(&seraddr),sizeof(seraddr));
+		if(size < 0)
+			printf("sendto error !\n");
+		else
+		{
+			char buff[5]={'\0'};
+			int length = sizeof(seraddr);
+			int size = recvfrom(udpfd,buff,5,0,(struct sockaddr*)(&seraddr),&length);	
+			if(size < 0)
+				printf("recvfrom error !\n");
+			else
+			{
+				if(strcmp(buff,"ok") == 0)
+				{
+					system("clear");
+					printf("the contact delete success ! press enter anykey continue !\n ");
+					getchar();
+					ShowMenus();
+				}
+				else if(strcmp(buff,"no") == 0)
+				{
+					system("clear");
+					printf("delete faild !press enter anykey continue !\n");
+					getchar();
+					ShowMenus();
+				}
+				else
+				{
+					system("clear");
+					printf("this contact is not exist ! press enter anykey continue !\n");
+					getchar();
+					ShowMenus();
+				}
+			}	
+		}
+	}
+}
+
+void Find(int udpfd)
+{
+	find_way_view();
+}	
 void query_by_name(int udpfd)
 {
 	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
-	memset(con->name,'\0',20);
-	con->flag = '2';
-	while(1)
+	if(con != NULL)
 	{
-		fflush(stdin);
+		memset(con->name,'\0',20);
+		con->flag = '2';
 		system("clear");
 		printf("please input the contact name :");
 		scanf("%s",con->name);
@@ -352,18 +542,24 @@ void query_by_name(int udpfd)
 		printf("\n\nsure query or not(y/n)");
 		char ch = getchar();
 		getchar();
-		switch(ch)
-		{
-			case 'y':  send_name(udpfd,con);            break;
-			case 'n':  find_way_view();                 break;
-			default :  find_way_view() ;                break;			   
-		}
-		break;
+		handle_name(ch,con);
 	}
 	free(con);
-	con == NULL;
+	con = NULL;
 }
 
+void handle_name(char ch,struct contact *con)
+{
+	if(con != NULL)
+	{
+		switch(ch)
+		{
+             case 'y':  send_name(udpfd,con);            break;
+             case 'n':  find_way_view();                 break;
+             default :  find_way_view() ;                break;             
+         }
+	}
+}
 void pre_continue()
 {
 	printf("please enter anykey continue !\n");
@@ -420,10 +616,10 @@ void send_name(int udpfd,struct contact *con)
 void query_by_tel(int udpfd)
 {
 	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
-	memset(con->tel,0,20);
-	con->flag = '3';
-	while(1)
+	if(con != NULL)
 	{
+		memset(con->tel,0,20);
+		con->flag = '3';
 		system("clear");
 		fflush(stdin);
 		printf("please input the contact tel :");
@@ -432,16 +628,23 @@ void query_by_tel(int udpfd)
 		printf("\n\nsure query or not(y/n):");
 		char ch = getchar();
 		getchar();
+		handle_tel(ch,con);
+	}
+	free(con);
+	con = NULL;
+}
+
+void handle_tel(char ch,struct contact *con)
+{
+	if(con != NULL)
+	{
 		switch(ch)
 		{
 			case 'y': send_tel(udpfd,con); break;
-			case 'n': find_way_view();     break;
-			default : find_way_view();     break;
+		    case 'n': find_way_view();     break;
+		    default : find_way_view();     break;
 		}
-		break;
 	}
-	free(con);
-	con == NULL;
 }
 
 
@@ -493,10 +696,11 @@ void back()
 {
 	ShowMenus();
 }
+
 void Error3()
 {
 	system("clear");
-	printf("input error ,please rechoise !\n");
+	printf("input error ,please input again !\n");
 	sleep(1);
 	find_way_view();
 }
@@ -531,10 +735,6 @@ void find_way_view()
 		break;
 	}
 }
-void Find(int udpfd)
-{
-	find_way_view();
-}	
 
 void add_contactor(struct contact *contactor)
 {
@@ -582,39 +782,35 @@ void Add(int udpfd)
 {
 	system("clear");
 	char flags;
-	struct contact con;
-	memset(con.sex,'\0',5);
-	memset(con.tel,'\0',20);
-	memset(con.name,'\0',20);
-	
-	con.flag = '4';     
-	printf("please input name:");
-	scanf("%s",con.name);
-	getchar();
-	printf("please input Tel:");
-	scanf("%s",con.tel);
-	getchar();
-	printf("please input sex:");
-	scanf("%s",con.sex);
-	getchar();
-	printf("\n\nSave or not ?(y/n) : ");
-	scanf("%c",&flags);
-	getchar();
-	switch(flags)
+	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
+	if(con != NULL)
 	{
-		case 'y':  add_contactor(&con);  break;
-		case 'n':  ShowMenus();			 break;
-		default :  Error2();			 break;
-	} 
-}
-void Modify(int udpfd)
-{
-	printf("waitting ......\n");
-}
-void Delete(int udpfd)
-{
-    printf("waitting ......\n");  
-	ShowMenus();
+		memset(con->sex,'\0',5);
+		memset(con->tel,'\0',20);
+		memset(con->name,'\0',20);
+		
+		con->flag = '4';     
+		printf("please input name:");
+		scanf("%s",con->name);
+		getchar();
+		printf("please input Tel:");
+		scanf("%s",con->tel);
+		getchar();
+		printf("please input sex:");
+		scanf("%s",con->sex);
+		getchar();
+		printf("\n\nSave or not ?(y/n) : ");
+		scanf("%c",&flags);
+		getchar();
+		switch(flags)
+		{
+			case 'y':  add_contactor(con);  break;
+			case 'n':  ShowMenus();			 break;
+			default :  Error2();			 break;
+		} 
+	}
+	free(con);
+	con = NULL;
 }
 
 
@@ -625,14 +821,7 @@ void Exit2()
 	getchar();
 	switch(ch)
 	{
-		case 'y': 
-			{
-				system("clear");
-				printf("thank for your using , Bye bye !\n");
-				sleep(1);
-				system("reset");
-				exit(1);
-			}	break;
+		case 'y':Bye();			  break;
 		case 'n': ShowMenus();    break;
 		default : Error2();       break;
 	}

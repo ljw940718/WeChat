@@ -5,9 +5,6 @@ MYSQL mysql;
 MYSQL_RES *res;
 MYSQL_ROW row;
 
-int udpfd;
-int sockfd;
-struct sockaddr_in cliaddr,seraddr;
 static void  StartMysql()
 {
 
@@ -239,35 +236,38 @@ void ser_handle_register(int sockfd,struct user_info *user)
 static void handle_upd_data(int epfd,int udpfd)
 {
 	struct contact *cont = (struct contact *)malloc(sizeof(struct contact));
-	memset(cont->sex,'\0',5);
-	memset(cont->tel,'\0',20);
-    memset(cont->name,'\0',20);
-	int length = sizeof(cliaddr);
-	int size = recvfrom(udpfd,cont,MAXSIZE,0,(struct sockaddr*)(&cliaddr),&length);
-	if(size < 0 )
+	if(cont != NULL)
 	{
-		printf("recvfrom error !\n");
-	}	
-	else if(0 == size)
-	{
-		printf("udp connect stop!\n");
-	}
-	else
-	{
-		char flg = cont->flag;
-		printf("size = %d , recvfrom flag  = %c \n",size,flg);
-		switch(flg)
+		memset(cont->sex,'\0',5);
+		memset(cont->tel,'\0',20);
+		memset(cont->name,'\0',20);
+		int length = sizeof(cliaddr);
+		int size = recvfrom(udpfd,cont,MAXSIZE,0,(struct sockaddr*)(&cliaddr),&length);
+		if(size < 0 )
 		{
-			case '1': handle_all(udpfd,cont);               break;
-			case '2': handle_find_by_name(udpfd,cont);      break;
-			case '3': handle_find_by_tel(udpfd,cont);       break;
-			case '4': handle_add(udpfd,cont);				break;
-			case '5': handle_modify(udpfd,cont);			break;
-			case '6': handle_delete(udpfd,cont);			break;
+			printf("recvfrom error !\n");
+		}	
+		else if(0 == size)
+		{
+			printf("udp connect stop!\n");
 		}
-		free(cont);
-		cont == NULL;
+		else
+		{
+			char flg = cont->flag;
+			printf("size = %d , recvfrom flag  = %c \n",size,flg);
+			switch(flg)
+			{
+				case '1': handle_all(udpfd,cont);               break;
+				case '2': handle_find_by_name(udpfd,cont);      break;
+				case '3': handle_find_by_tel(udpfd,cont);       break;
+				case '4': handle_add(udpfd,cont);				break;
+				case '5': handle_modify(udpfd,cont);			break;
+				case '6': handle_delete(udpfd,cont);			break;
+			}
+		}
 	}
+	free(cont);
+	cont = NULL;
 }
 
 void handle_all(int udpfd,struct contact *con)
@@ -464,10 +464,120 @@ void handle_add(int udpfd,struct contact *con)
 		}
 	}
 }
+
 void handle_modify(int udpfd,struct contact *con)
-{}
+{
+	if(con != NULL)
+	{
+		printf("flag = %c\n",con->flag);
+		char buff[MAXSIZE]={0};
+		snprintf(buff,MAXSIZE-1,"select tel  from addresslist where tel = '%s'",con->tel);
+		int flag = mysql_query(&mysql,buff);
+		if(flag)
+			printf("mysql_query error !\n");
+		else
+		{
+			res = mysql_store_result(&mysql);
+			if(res != NULL)
+			{
+				if(mysql_num_rows(res))
+				{ 
+					char buff2[MAXSIZE];
+					memset(buff2,0,MAXSIZE);
+					snprintf(buff2,MAXSIZE-1,"update addresslist set name  = '%s', sex = '%s' where name = '%s'",con->name,con->sex,con->tel);
+					int flag2 = mysql_query(&mysql,buff2);
+					if(flag2)
+						printf("mysql_query error !\n");
+					else
+					{
+						int result = mysql_affected_rows(&mysql);
+						if(result)
+						{
+							printf("update success !\n");
+							int size = sendto(udpfd,"ok",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+							if(size < 0)
+								printf("sendto error !\n");
+						}
+						else
+						{
+							printf("update faild !\n");
+							int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+							if(size < 0)
+								printf("sendto error !\n");
+						}
+					}
+				
+				}
+				else
+				{
+					int size = sendto(udpfd,"error",5,0,(struct sockaddr*)(&cliaddr),sizeof(cliaddr));
+					if(size < 0)
+					{
+						printf("sendto error !\n");
+					}
+				}
+			}
+		}
+	}
+}
+
 void handle_delete(int udpfd,struct contact *con)
-{}
+{
+	if(con != NULL)
+	{
+		char buff[MAXSIZE] = {0};
+		snprintf(buff,MAXSIZE,"select name  from addresslist where  name = '%s'",con->name);
+		int flag = mysql_query(&mysql,buff);
+		if(flag)
+			printf("mysql_query error !\n");
+		else
+		{
+			res = mysql_store_result(&mysql);
+			if(res)
+			{
+				if(mysql_num_rows(res))
+				{
+					mysql_free_result(res);
+					char buff2[MAXSIZE]={0};
+					snprintf(buff2,MAXSIZE-1,"delete from addresslist where name = '%s'",con->name);
+					int flag = mysql_query(&mysql,buff2);
+					if(flag)
+						printf("mysql_query error !\n");
+					else
+					{
+						if(mysql_affected_rows(&mysql))
+						{
+							printf("delete success !\n");
+							int size = sendto(udpfd,"ok",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+							if(size < 0)
+							{
+								printf("sendto error !\n");
+							}
+						}
+						else
+						{
+							printf("delete error !\n");
+							int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+							if(size < 0)
+								printf("sendto error !\n");
+						}
+					}
+				}
+				else
+				{
+					printf("this contact is not exist !\n");
+					int size = sendto(udpfd,"error",5,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+					if(size < 0)
+						printf("sendto error !\n");
+				}
+			}
+			else
+			{
+				printf("mysql_store_result error !\n");
+			}
+		}
+	}
+}
 
 
 static void delete_event(int epfd,int fd,int state)
