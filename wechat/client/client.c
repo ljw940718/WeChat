@@ -312,7 +312,9 @@ void All(int udpfd)
 					if(strcmp(buff,"no") == 0)
 					{
 						system("clear");
-						printf("this is a blank addresslist !\n");
+						printf("this is a blank addresslist !press enter anykey continue !\n");
+						getchar();
+						ShowMenus();
 						break;
 					}
 					else if(strcmp(buff,"ok") == 0)

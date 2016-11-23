@@ -282,38 +282,46 @@ void handle_all(int udpfd,struct contact *con)
 		else
 		{
 			res = mysql_store_result(&mysql);
-			if(res == NULL)
+			if(res != NULL)
 			{
-				int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
-				if(size < 0)
+				if(mysql_num_rows(res) == 0)
 				{
-					printf("sendto error !\n");
+					int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+					if(size < 0)
+					{
+						printf("sendto error !\n");
+					}
+				}
+				else
+				{
+					char buff[MAXSIZE];
+					while(row = mysql_fetch_row(res))
+					{
+						memset(buff,'\0',MAXSIZE);
+						snprintf(buff,MAXSIZE-1,"%10s%15s%10s",row[0],row[1],row[2]);
+					//	printf("%s\n",buff);
+						int size = sendto(udpfd,buff,sizeof(buff),0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+						if(size < 0)
+						{
+							printf("sendto error !\n");
+							break;
+						}
+					}
+					memset(buff,'\0',MAXSIZE);
+					int size = sendto(udpfd,"ok",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+					if(size < 0)
+						printf("sendto error !\n");
 				}
 			}
 			else
 			{
-				char buff[MAXSIZE];
-				while(row = mysql_fetch_row(res))
-				{
-					memset(buff,'\0',MAXSIZE);
-					snprintf(buff,MAXSIZE-1,"%10s%15s%10s",row[0],row[1],row[2]);
-				//	printf("%s\n",buff);
-					int size = sendto(udpfd,buff,sizeof(buff),0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
-					if(size < 0)
-					{
-						printf("sendto error !\n");
-						break;
-					}
-				}
-				memset(buff,'\0',MAXSIZE);
-				int size = sendto(udpfd,"ok",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
-				if(size < 0)
-					printf("sendto error !\n");
+				printf("mysql_store_result error !\n");
 			}
 		}
 	}
-
 }
+
+
 void handle_find_by_name(int udpfd,struct contact *con)
 {
 	if(con != NULL)
