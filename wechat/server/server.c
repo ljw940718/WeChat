@@ -88,12 +88,12 @@ static void  handle_accept(int epfd,int sockfd)
 
 static void handle_recv(int epfd,int sockfd)
 {
-	struct user_info user;
-	
-	memset(user.username,0,20);
-	memset(user.password,0,20);
+	struct user_info *user = (struct user_info *)malloc(sizeof(struct user_info));
+	if(user == NULL)  exit(1);
+	memset(user->username,0,20);
+	memset(user->password,0,20);
 	int length = sizeof(seraddr);
-	int size = recv(sockfd,&user,sizeof(struct user_info),0);
+	int size = recv(sockfd,user,sizeof(struct user_info),0);
 	if(size < 0)
 	{
 		printf("recv error !\n");
@@ -108,23 +108,24 @@ static void handle_recv(int epfd,int sockfd)
 	}
 	else
 	{
-		char flag = user.flag;
+		char flag = user->flag;
 		switch(flag)
 		{
-			case '1': ser_handle_login(sockfd,&user);    break;
-			case '2': ser_handle_register(sockfd,&user); break;
+			case '1': ser_handle_login(sockfd,user);    break;
+			case '2': ser_handle_register(sockfd,user); break;
 		}
 	}
-	
+	free(user);
+	user = NULL;
 }
 
-void ser_handle_login(int sockfd,struct user_info *user)
+void ser_handle_login(int sockfd,struct user_info *user) //server handle login  
 {
 	if(user != NULL)
 	{
 		char buff1[MAXSIZE]={0};
-		snprintf(buff1,MAXSIZE-1,"select * from user where username = '%s'",user->username);
-		int flag = mysql_query(&mysql,buff1);
+		snprintf(buff1,MAXSIZE-1,"select username  from user where username = '%s'",user->username);
+		int flag = mysql_query(&mysql,buff1);  
 		if(flag)
 		{
 			printf("mysql_query error !\n");
@@ -136,10 +137,11 @@ void ser_handle_login(int sockfd,struct user_info *user)
 			{
 				if(mysql_num_rows(res))
 				{
-					printf("select user table !\n");
+					printf("select user table on first!\n");
 					mysql_free_result(res);
+					
 					char buff2[MAXSIZE] = {0};
-					snprintf(buff2,MAXSIZE-1,"select * from user where username = '%s'and passwd = '%s'",user->username,user->password);
+					snprintf(buff2,MAXSIZE-1,"select username,passwd  from user where username = '%s'and passwd = '%s'",user->username,user->password);
 					int flag = mysql_query(&mysql,buff2);
 					if(flag)
 						printf("mysql-query error !\n");
@@ -150,13 +152,18 @@ void ser_handle_login(int sockfd,struct user_info *user)
 						{
 							if(mysql_num_rows(res))
 							{
-								mysql_free_result(res);
+								printf("select user table on second !\n");
+								//username and password are correct 
 								int size = send(sockfd,"ok",2,0);
 								if(size < 0)
+								{
 									printf("send error !\n");
+								}
+								mysql_free_result(res);
 							}
 							else
 							{
+								//password error 
 								int size = send(sockfd,"no",2,0);
 								if( size < 0 )
 									printf("send error !\n");
@@ -164,9 +171,9 @@ void ser_handle_login(int sockfd,struct user_info *user)
 						}
 					}
 				}
-				else
+				else 
 				{
-					printf("select error ! this user not exist \n");
+					//username is not exist 
 					int size = send(sockfd,"error",5,0);
 					if(size < 0 )
 					{
@@ -179,12 +186,12 @@ void ser_handle_login(int sockfd,struct user_info *user)
 }
 
 
-void ser_handle_register(int sockfd,struct user_info *user)
+void ser_handle_register(int sockfd,struct user_info *user)//  server handle register 
 {
 	if(user != NULL)
 	{
 		char buff1[MAXSIZE]={0};
-		snprintf(buff1,MAXSIZE-1,"select *from user where username = '%s'",user->username);
+		snprintf(buff1,MAXSIZE-1,"select username from user where username = '%s'",user->username);
 		int flag = mysql_query(&mysql,buff1);
 		if(flag)
 		{
@@ -197,11 +204,12 @@ void ser_handle_register(int sockfd,struct user_info *user)
 			{
 				if(mysql_num_rows(res))
 				{
-					printf("selcet success !\n");
-					mysql_free_result(res);
+					//printf("selcet success !\n");
+					//find username, user exist 
 					int size = send(sockfd,"no",2,0);
 					if(size < 0) 
 						printf("send error !\n");
+					mysql_free_result(res);
 				}
 				else
 				{
@@ -214,7 +222,8 @@ void ser_handle_register(int sockfd,struct user_info *user)
 					{
 						if(mysql_affected_rows(&mysql))
 						{
-							printf("insert success !\n");
+							//printf("insert success !\n");
+							//not found , insert information into usertable 
 							int size = send(sockfd,"ok",2,0);
 							if(size < 0)
 							{
@@ -231,7 +240,7 @@ void ser_handle_register(int sockfd,struct user_info *user)
 
 
 /*
- *handle_udp_data() 处理客户端发送的增，删，改，查
+ *handle_udp_data()   handle add、delete、modify、query
 */
 static void handle_upd_data(int epfd,int udpfd)
 {
@@ -257,7 +266,7 @@ static void handle_upd_data(int epfd,int udpfd)
 			printf("size = %d , recvfrom flag  = %c \n",size,flg);
 			switch(flg)
 			{
-				case '1': handle_all(udpfd,cont);               break;
+				case '1': handle_all(udpfd,cont);               break; 
 				case '2': handle_find_by_name(udpfd,cont);      break;
 				case '3': handle_find_by_tel(udpfd,cont);       break;
 				case '4': handle_add(udpfd,cont);				break;
@@ -270,7 +279,7 @@ static void handle_upd_data(int epfd,int udpfd)
 	cont = NULL;
 }
 
-void handle_all(int udpfd,struct contact *con)
+void handle_all(int udpfd,struct contact *con)  //print all contacts information
 {
 	if(con != NULL)
 	{
@@ -322,7 +331,7 @@ void handle_all(int udpfd,struct contact *con)
 }
 
 
-void handle_find_by_name(int udpfd,struct contact *con)
+void handle_find_by_name(int udpfd,struct contact *con) //query by name 
 {
 	if(con != NULL)
 	{
@@ -344,7 +353,6 @@ void handle_find_by_name(int udpfd,struct contact *con)
 					{
 						memset(buff2,'\0',MAXSIZE);
 						snprintf(buff2,MAXSIZE-1,"%10s%15s%10s",row[0],row[1],row[2]);
-					//	printf("%s\n",buff2);
 						int size = sendto(udpfd,buff2,sizeof(buff2),0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
 						if(size < 0)
 							printf("sendto error !\n");
@@ -368,7 +376,7 @@ void handle_find_by_name(int udpfd,struct contact *con)
 	}
 }
 
-void handle_find_by_tel(int udpfd,struct contact *con)
+void handle_find_by_tel(int udpfd,struct contact *con)   //query by number 
 {
 	if(con != NULL)
 	{
@@ -390,7 +398,6 @@ void handle_find_by_tel(int udpfd,struct contact *con)
 					{
 						memset(buff,'\0',MAXSIZE);
 						snprintf(buff,MAXSIZE-1,"%10s%15s%10s",row[0],row[1],row[2]);
-					//	printf("%s\n",buff);
 						int size = sendto(udpfd,buff,sizeof(buff),0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
 						if(size < 0 )
 							printf("sendto error !\n");
@@ -473,7 +480,7 @@ void handle_add(int udpfd,struct contact *con)
 	}
 }
 
-void handle_modify(int udpfd,struct contact *con)
+void handle_modify(int udpfd,struct contact *con)    //handle modify contact 
 {
 	if(con != NULL)
 	{
@@ -493,7 +500,7 @@ void handle_modify(int udpfd,struct contact *con)
 			{
 				if(0 == mysql_num_rows(res))
 				{
-					printf("not exist ! sendto no \n");
+					//printf("not exist ! sendto no \n");
 					int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
 					if(size < 0)
 						printf("sendto error !\n");
@@ -560,7 +567,7 @@ void handle_modify(int udpfd,struct contact *con)
 	}
 }
 
-void handle_delete(int udpfd,struct contact *con)
+void handle_delete(int udpfd,struct contact *con)   //handle delete contact 
 {
 	if(con != NULL)
 	{
@@ -619,7 +626,7 @@ void handle_delete(int udpfd,struct contact *con)
 }
 
 
-static void delete_event(int epfd,int fd,int state)
+static void delete_event(int epfd,int fd,int state)  // delete events
 {
 	struct epoll_event ev;
 	ev.events = state;
@@ -627,7 +634,7 @@ static void delete_event(int epfd,int fd,int state)
 	epoll_ctl(epfd,EPOLL_CTL_DEL,fd,&ev);
 }
 
-static void modify_event(int epfd,int fd,int state)
+static void modify_event(int epfd,int fd,int state)  //modify events 
 {
 	struct epoll_event ev;
 	ev.events = state;
@@ -643,23 +650,21 @@ static void handle_events(int epfd,struct epoll_event *events,int num,int sockfd
 		fd = events[i].data.fd;
 		if(fd == sockfd)
 		{
-			handle_accept(epfd,sockfd); //处理链接
+			handle_accept(epfd,sockfd); //handle connection 
 		}
 		else if(fd == udpfd)
 		{
-			handle_upd_data(epfd,fd); //处理udp数据
+			handle_upd_data(epfd,fd); //handle  udp data
 		}
 		else if(events[i].events & EPOLLIN)
 		{
-			handle_recv(epfd,fd); //   处理登录/注册
+			handle_recv(epfd,fd); //handle register and login 
 		}
 	}
 }
 static void Do_epoll()
 {
 	int epfd;
-//	char buff[MAXSIZE];
-//	memset(buff,0,MAXSIZE);
 	struct epoll_event events[EPOLLEVENTS];
 	int res;
 	epfd = epoll_create(FDSIZE);

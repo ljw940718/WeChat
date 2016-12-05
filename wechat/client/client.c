@@ -80,23 +80,23 @@ void handle_login(int sockfd,struct user_info *user)
 				if(strcmp(recvbuf,"ok") == 0)
 				{
 					system("clear");
-					printf("Login in success ! loading ......\n");
-					sleep(2);
-					close(sockfd);
+					printf("Login in success !press enter anykey continue !\n");
+					getchar();
+				//	close(sockfd);
 					ShowMenus();
 				}
-				else if(strcpy(recvbuf,"no1") == 0)
+				else if(strcmp(recvbuf,"no") == 0)
 				{
 					system("clear");
 					printf("Login in faild !please check your password!\n");
-					sleep(2);
+					getchar();
 					ShowWelcome();
 				}
 				else
 				{
 					system("clear");
-					printf("Login faild , this user not exist !\n");
-					sleep(2);
+					printf("Login faild , this user not exist ,press enter anykey continue !\n");
+					getchar();
 					ShowWelcome();
 				}
 			}
@@ -132,7 +132,7 @@ static void Login(int sockfd)
 		default : Error1();      break;
 	}
 	free(user);
-	user == NULL;
+	user = NULL;
 }	
 
 
@@ -158,15 +158,15 @@ void handle_register(int sockfd,struct user_info *user)
 				if(strcmp(recvbuf,"ok")== 0)
 				{
 					system("clear");
-					printf("Register success !\n");
-					sleep(1);
+					printf("Register success ! press enter anykey continue \n");
+					getchar();
 					ShowWelcome();
 				}
 				else
 				{
 					system("clear");
-					printf("Register faild ! this user existed !\n");
-					sleep(1);
+					printf("Register faild ! this user existed ! press enter anykey continue\n");
+					getchar();
 					ShowWelcome();
 				}
 			}
@@ -185,6 +185,7 @@ static void Register(int sockfd)
     memset(user->username,0,20);
  	memset(user->password,0,20);
     fflush(stdin);
+
     printf("please input usernsme:");
 	scanf("%s",user->username);
 	getchar();
@@ -203,6 +204,8 @@ static void Register(int sockfd)
 		case 'n': ShowWelcome();			    break;
 		default : Error1();						break;
 	}
+	free(user);
+	user = NULL;
 }
 
 void Bye()
@@ -216,7 +219,8 @@ void Bye()
 static void Exit1()
 {
 	char flag;
-	printf("\n\nAre you sure Exit ?(y/n)");
+	system("clear");
+	printf("Are you sure Exit ?(y/n):");
 	scanf("%c",&flag);
 	getchar();
 	switch(flag)
@@ -346,11 +350,12 @@ void handle_option(int udpfd)
 void show_option()
 {
 	system("clear");
+	fflush(stdin);
 	puts("\t---------------------------------------\n");
 	puts("\t*               options               *\n");
 	puts("\t---------------------------------------\n");
 	puts("\t*       1-Midify_info_by_tel          *\n");
-	puts("\t*       2-Delete  contact             *\n");
+	puts("\t*       2-Delete_contact              *\n");
 	puts("\t*       3-Back_previous_page          *\n");
 	puts("\t---------------------------------------\n");
 
@@ -374,6 +379,7 @@ void handle_choise(char ch)
 void Modify(int udpfd)
 {
 	system("clear");
+	fflush(stdin);
 	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
 	if(con == NULL) exit(1);	
 	con->flag = '5';
@@ -399,16 +405,18 @@ void Modify(int udpfd)
 			if(strcmp(buff,"no") == 0)
 			{
 				system("clear");
-				printf("this contact is not exist ! press enter anykey continue \n");
-				getchar();
+				printf("this contact is not exist !\n");
+				sleep(2);
 				show_option();
 				break;
 			}
 			else
 			{
-				printf("original : %s\n",buff);
+				print_attribute();
+				printf("%s\n",buff);
+
 				memset(con->tel,'\0',20);
-				
+				fflush(stdin);
 				printf("plsase input contact name:");
 				scanf("%s",con->name);
 				getchar();
@@ -423,10 +431,12 @@ void Modify(int udpfd)
 				char ch = getchar();
 				getchar();
 				submit_modify(con,ch);	
+				break;
 			}
 		}
 	}
 }
+
 void submit_modify(struct contact *con,char ch)
 {
 	if( con != NULL)
@@ -439,6 +449,7 @@ void submit_modify(struct contact *con,char ch)
 		}
 	}
 }
+
 void modify_info(struct contact *con)
 {
 	if( con != NULL)
@@ -477,6 +488,7 @@ void modify_info(struct contact *con)
 
 void Delete(int udpfd)
 {
+	fflush(stdin);
     struct contact *con = (struct contact *)malloc(sizeof(struct contact));
 	if(con != NULL)
 	{
@@ -556,6 +568,7 @@ void Find(int udpfd)
 }	
 void query_by_name(int udpfd)
 {
+	fflush(stdin);
 	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
 	if(con != NULL)
 	{
@@ -641,6 +654,7 @@ void send_name(int udpfd,struct contact *con)
 
 void query_by_tel(int udpfd)
 {
+	fflush(stdin);
 	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
 	if(con != NULL)
 	{
@@ -808,6 +822,7 @@ void add_contactor(struct contact *contactor)
 void Add(int udpfd)
 {
 	system("clear");
+	fflush(stdin);
 	char flags;
 	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
 	if(con != NULL)
@@ -843,6 +858,7 @@ void Add(int udpfd)
 
 void Exit2()
 {
+	fflush(stdin);
 	printf("\n\nSure exit or not(y/n):");
 	char ch = getchar();
 	getchar();
