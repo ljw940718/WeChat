@@ -41,8 +41,8 @@ struct user_info
 struct contact                                                          
 {
    	char name[20]; 
-    char tel[20];
-    char sex[5];
+ 	char tel[20];
+	char sex[5];
 	char flag;    // 1,all  2, 3,find  4,add  5,modify  6,delete
 };
 

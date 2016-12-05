@@ -21,16 +21,16 @@ static void  Creat_ClientSocket(int port,const char *ip)
 	}
 	else
 	{
-		printf("socket success !\n");
+	//	printf("socket success !\n");
+		if((inet_pton(AF_INET,ip,&cliaddr.sin_addr))<=0)
+		{
+			printf("inet_pton error !\n");
+			exit(1);
+		}
+		int res = connect(sockfd,(struct sockaddr*)&seraddr,sizeof(seraddr));
+		assert(res != -1);
+		printf("connect to server success !\n");
 	}
-	if((inet_pton(AF_INET,ip,&cliaddr.sin_addr))<=0)
-	{
-		printf("inet_pton error !\n");
-		exit(1);
-	}
-	int res = connect(sockfd,(struct sockaddr*)&seraddr,sizeof(seraddr));
-	assert(res != -1);
-	printf("connect to server success !\n");
 }
 
 static void set_disp_mode(int fd,int option)//contral display 
@@ -174,6 +174,7 @@ void handle_register(int sockfd,struct user_info *user)
 	}
 
 }
+
 
 static void Register(int sockfd)
 {
@@ -348,7 +349,7 @@ void show_option()
 	puts("\t---------------------------------------\n");
 	puts("\t*               options               *\n");
 	puts("\t---------------------------------------\n");
-	puts("\t*       1-Midify_contact_info         *\n");
+	puts("\t*       1-Midify_info_by_tel          *\n");
 	puts("\t*       2-Delete  contact             *\n");
 	puts("\t*       3-Back_previous_page          *\n");
 	puts("\t---------------------------------------\n");
@@ -358,6 +359,7 @@ void show_option()
 	getchar();
 	handle_choise(ch);
 }
+
 void handle_choise(char ch)
 {
 	switch(ch)
@@ -368,32 +370,61 @@ void handle_choise(char ch)
 		default :   handle_option(udpfd);	 break;
 	}
 }
+
 void Modify(int udpfd)
 {
 	system("clear");
 	struct contact *con = (struct contact *)malloc(sizeof(struct contact));
-	if(con != NULL )
+	if(con == NULL) exit(1);	
+	con->flag = '5';
+	memset(con->name,'\0',20);
+	memset(con->tel,'\0',20);
+	memset(con->sex,'\0',5);
+
+	printf("please input contact tel :");
+	scanf("%s",con->tel);
+	int size = sendto(udpfd,con,sizeof(struct contact),0,(struct sockaddr *)(&seraddr),sizeof(seraddr));
+	if(size < 0)
+		printf("sendto error !\n");
+	while(1)
 	{
-		con->flag = '5';
-		memset(con->name,'\0',20);
-		memset(con->tel,'\0',20);
-		memset(con->sex,'\0',5);
-
-		printf("plsase input contact name:");
-		scanf("%s",con->name);
-		getchar();
-		printf("please input contact  tel:");
-		scanf("%s",con->tel);
-		getchar();
-		printf("please input contact sex:");
-		scanf("%s",con->sex);
-		getchar();
-
-		printf("\n\nSure modify this contact intomation ?(y/n):");
-		char ch = getchar();
-		getchar();
+		char buff[MAXSIZE]= {'\0'};
+		int length = sizeof(seraddr);
 		
-		submit_modify(con,ch);
+		size = recvfrom(udpfd,buff,MAXSIZE,0,(struct sockaddr *)(&seraddr),&length);
+		if(size < 0) 
+			printf("recvfrom error !\n");
+		else
+		{
+			if(strcmp(buff,"no") == 0)
+			{
+				system("clear");
+				printf("this contact is not exist ! press enter anykey continue \n");
+				getchar();
+				show_option();
+				break;
+			}
+			else
+			{
+				printf("original : %s\n",buff);
+				memset(con->tel,'\0',20);
+				
+				printf("plsase input contact name:");
+				scanf("%s",con->name);
+				getchar();
+				printf("please input contact  tel:");
+				scanf("%s",con->tel);
+				getchar();
+				printf("please input contact sex:");
+				scanf("%s",con->sex);
+				getchar();
+
+				printf("\n\nSure modify this contact intomation ?(y/n):");
+				char ch = getchar();
+				getchar();
+				submit_modify(con,ch);	
+			}
+		}
 	}
 }
 void submit_modify(struct contact *con,char ch)
@@ -431,17 +462,10 @@ void modify_info(struct contact *con)
 					getchar();
 					ShowMenus();
 				}
-				else if(strcmp(buff,"no") == 0)
-				{
-					system("clear");
-					printf("information modify faild ！ press enter anykey continue\n");
-					getchar();
-					ShowMenus();
-				}
 				else
 				{
 					system("clear");
-					printf("this contact not exit ! press enter anykey continue ！");
+					printf("information modify faild ！ press enter anykey continue\n");
 					getchar();
 					ShowMenus();
 				}
@@ -595,7 +619,7 @@ void send_name(int udpfd,struct contact *con)
 				{
 					if(strcmp(buff,"no") == 0)
 					{
-						printf("this contact is not exist !\n");
+						printf("this contact is not exist !");
 						break;
 					}
 					else if(strcmp(buff,"ok") == 0)
@@ -674,7 +698,7 @@ void send_tel(int udpfd,struct contact *con)
 				{
 					if(strcmp(buff,"no") == 0)
 					{
-						printf("this menber not exist !\n");		
+						printf("this menber not exist !");		
 						break;
 					}
 					else if(strcmp(buff,"ok") == 0)
@@ -702,8 +726,8 @@ void back()
 void Error3()
 {
 	system("clear");
-	printf("input error ,please input again !\n");
-	sleep(1);
+	printf("input error ,please input again !press enter anykey continue !\n");
+	getchar();
 	find_way_view();
 }
 void query_way(char ch)
@@ -764,15 +788,15 @@ void add_contactor(struct contact *contactor)
 				if(strcmp(recvbuf,"ok") == 0)
 				{
 					system("clear");
-					printf("add contact success !\n");
-					sleep(1);
+					printf("add contact success ! press enter anykey continue !\n");
+					getchar();
 					ShowMenus();
 				}
 				else
 				{
 					system("clear");
-					printf("add contact faild   !\n");
-					sleep(1);
+					printf("add contact faild !this tel has existed , press enter anykey continue !\n");
+					getchar();
 					ShowMenus();
 				}
 			}	
@@ -780,6 +804,7 @@ void add_contactor(struct contact *contactor)
 	}	
 	
 }
+
 void Add(int udpfd)
 {
 	system("clear");

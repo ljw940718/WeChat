@@ -432,7 +432,7 @@ void handle_add(int udpfd,struct contact *con)
 				if(mysql_num_rows(res))
 				{
 					mysql_free_result(res);
-					printf("this tel has exist !\n");
+				//	printf("this tel has exist !\n");
 					int size = sendto(udpfd,"no",2,0,(struct sockaddr*)(&cliaddr),sizeof(cliaddr));
 					if(size < 0)
 					{
@@ -441,7 +441,7 @@ void handle_add(int udpfd,struct contact *con)
 				}
 				else
 				{
-					printf("not find tel, insert !\n");
+				//	printf("not find tel, insert !\n");
 					char buff2[MAXSIZE] ={0};
 					snprintf(buff2,MAXSIZE-1,"insert into addresslist(name,tel,sex) value('%s','%s','%s')",con->name,con->tel,con->sex);
 					int flag = mysql_query(&mysql,buff2);
@@ -451,7 +451,7 @@ void handle_add(int udpfd,struct contact *con)
 					{
 						if(mysql_affected_rows(&mysql))
 						{
-							printf("insert success !\n");
+				//			printf("insert success !\n");
 							int size = sendto(udpfd,"ok",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
 							if(size <0 )
 							{
@@ -477,51 +477,82 @@ void handle_modify(int udpfd,struct contact *con)
 {
 	if(con != NULL)
 	{
-		printf("flag = %c\n",con->flag);
+		char recv_tel[20]={'\0'};
+		memcpy(recv_tel,con->tel,strlen(con->tel));
+		//printf("recv_tel :%s\n",recv_tel);
 		char buff[MAXSIZE]={0};
-		snprintf(buff,MAXSIZE-1,"select tel  from addresslist where tel = '%s'",con->tel);
-		int flag = mysql_query(&mysql,buff);
-		if(flag)
-			printf("mysql_query error !\n");
+		snprintf(buff,MAXSIZE-1,"select name,tel,sex from addresslist where tel = '%s'",recv_tel);
+		if(mysql_query(&mysql,buff))
+		{
+			printf("mysql_query first error !\n");
+		}
 		else
 		{
 			res = mysql_store_result(&mysql);
 			if(res != NULL)
 			{
-				if(mysql_num_rows(res))
-				{ 
-					char buff2[MAXSIZE];
-					memset(buff2,0,MAXSIZE);
-					snprintf(buff2,MAXSIZE-1,"update addresslist set name  = '%s', sex = '%s' where name = '%s'",con->name,con->sex,con->tel);
-					int flag2 = mysql_query(&mysql,buff2);
-					if(flag2)
-						printf("mysql_query error !\n");
-					else
-					{
-						int result = mysql_affected_rows(&mysql);
-						if(result)
-						{
-							printf("update success !\n");
-							int size = sendto(udpfd,"ok",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
-							if(size < 0)
-								printf("sendto error !\n");
-						}
-						else
-						{
-							printf("update faild !\n");
-							int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
-							if(size < 0)
-								printf("sendto error !\n");
-						}
-					}
-				
+				if(0 == mysql_num_rows(res))
+				{
+					printf("not exist ! sendto no \n");
+					int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+					if(size < 0)
+						printf("sendto error !\n");
 				}
 				else
 				{
-					int size = sendto(udpfd,"error",5,0,(struct sockaddr*)(&cliaddr),sizeof(cliaddr));
-					if(size < 0)
+					char buff2[MAXSIZE];
+					while(row = mysql_fetch_row(res))
 					{
-						printf("sendto error !\n");
+						memset(buff2,'\0',MAXSIZE);
+						snprintf(buff2,MAXSIZE-1,"%10s%15s%10s",row[0],row[1],row[2]);
+						int size = sendto(udpfd,buff2,sizeof(buff2),0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+						if(size < 0)
+						{
+							printf("sendto error !\n");
+						}
+					}
+					mysql_free_result(res);		
+					//printf("query success ! update \n");
+					
+					struct contact *con = (struct contact *)malloc(sizeof(struct contact));
+
+					if(con != NULL)
+                    {
+						memset(con->name,'\0',20);
+						memset(con->tel,'\0',20);
+						memset(con->sex,'\0',5);
+						int length = sizeof(cliaddr);
+						int size = recvfrom(udpfd,con,sizeof(struct contact),0,(struct sockaddr *)(&cliaddr),&length);
+						if(size < 0) 
+							printf("recvfrom error !\n");
+						else
+						{
+							memset(buff2,0,MAXSIZE);
+							snprintf(buff2,MAXSIZE-1,"update addresslist set name  = '%s', tel = '%s',sex = '%s' where tel = '%s'",con->name,con->tel,con->sex,recv_tel);
+							int flag2 = mysql_query(&mysql,buff2);
+							if(flag2)
+							{
+								printf("mysql_query error second !\n");
+							}
+							else
+							{
+								int result = mysql_affected_rows(&mysql);
+								if(result)
+								{
+									printf("update success !\n");
+									int size = sendto(udpfd,"ok",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+									if(size < 0)
+										printf("sendto error !\n");
+								}
+								else
+								{
+									printf("update faild !\n");
+									int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&cliaddr),sizeof(cliaddr));
+									if(size < 0)
+										printf("sendto error !\n");
+								}
+							}
+						}
 					}
 				}
 			}
