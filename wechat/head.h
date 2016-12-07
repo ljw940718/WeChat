@@ -87,53 +87,60 @@ static void Do_epoll() ;//epoll处理高并发
 static int True(char *buff);
 
 //客户端函数列表
-static void  Creat_ClientSocket(int port,const char *ip);
+static void  Creat_ClientSocket(int port,const char *ip); //创建socket
+void show_view();         //选项窗口，addresslist or  WeChat
+void Error0()  ;          //处理 show_view() 错误输入
 void ShowWelcome();
-void Error1();
-void Error2();
-static void Choise(char ch);
-static void set_disp_mode(int fd,int option);//contral display 
+void Error1();            //处理Show_welcome() 错误输入 
+void Error2();			  //处理ShowMenus() 错误输入
+void Error3();            //处理find_way_view() 错误输入
 
-static void Login(int sockfd); 
+static void Choise(char ch);  // 选择登陆、注册、退出
+static void set_disp_mode(int fd,int option);// 控制密码回显
+
+static void Login(int sockfd);    
 void handle_login(int sockfd,struct user_info *user);
 
 static void Register(int sockfd);
 void handle_register(int sockfd,struct user_info *user);
-static void Exit1();
+static void Exit1();       // 退出欢迎界面
+void  Bye();               //退出系统时打印信息
 
-void ShowMenus();
-void ChoiseFunction(char ch);
-void All(int udpfd);
+void ShowMenus();          // addresslist 菜单界面
+void ChoiseFunction(char ch);   
+
+void print_attribute();//打印属性  姓名   联系方式   性别  
+void All(int udpfd);      //打印所有联系人
 
 //query 
 void Find(int udpfd);
-void find_way_view();
-void query_way(char ch);
-void query_by_name(int udpfd);
-void handle_name(char ch,struct contact *con);
+void pre_continue() ;              //按任意键返回查询方式
+void find_way_view();              //查询方式界面
+void query_way(char ch);           //查询方式
+void query_by_name(int udpfd);     //姓名查询
+void handle_name(char ch,struct contact *con); //
 
 void send_name(int udpfd,struct contact *con);
 void query_by_tel(int udpfd);
 void handle_tel(char ch,struct contact *con);
 void send_tel(int sockfd,struct contact *con);
-void print_attribute();//打印属性  姓名   联系方式   性别  
-void Error3();
+
 
 
 //add
 void Add(int udpfd);
 void add_contactor(struct contact *contactor);
 
-
 //modify
-void Modify(int udpfd);
-void handle_option(int udpfd);
-void show_option();
-void handle_choise(char ch);
-void Modify(int udpfd);
+void Modify(int udpfd);                 
+void handle_option(int udpfd);          //处理修改删除 
+void show_option();                     //修改、删除界面
+void handle_choise(char ch);            //选择修改、删除
+
 void submit_modify(struct contact *con,char flag); // 提交修改信息
-void modify_info(struct contact *con);
-void back();
+void submit_cancel();                              //取消提交
+void modify_info(struct contact *con);    //将信息发送到服务器 
+void back();                              //返回menus界面
 
 
 //delete
@@ -141,5 +148,17 @@ void Delete(int udpfd);
 void delete_option(char ch,struct contact *con);
 void sure_delete(struct contact *con);
 //exit
-void Exit2();
+void Exit2();               //menus界面退出
+
+
+
+
+void WeChat();                     //进入微信
+
+
+
+
+
+
+
 #endif

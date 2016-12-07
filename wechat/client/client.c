@@ -83,7 +83,7 @@ void handle_login(int sockfd,struct user_info *user)
 					printf("Login in success !press enter anykey continue !\n");
 					getchar();
 				//	close(sockfd);
-					ShowMenus();
+					show_view();
 				}
 				else if(strcmp(recvbuf,"no") == 0)
 				{
@@ -211,17 +211,21 @@ static void Register(int sockfd)
 void Bye()
 {
 	system("clear");
-	printf("thank you for your use ! Bye\n");
-	sleep(1);
+	puts("\n\n\t--------------------------------------------------\n");
+	puts("\t+         thank you for your use ! Bye ！        +\n");
+	puts("\t+                                                +\n");
+	puts("\t+                     Author: Liujingwen         +\n");
+	puts("\t+                      Date : 2016-12-7          +\n");
+	puts("\t--------------------------------------------------\n");
+	sleep(2);
 	system("reset");
 	exit(1);
 }
 static void Exit1()
 {
-	char flag;
 	system("clear");
 	printf("Are you sure Exit ?(y/n):");
-	scanf("%c",&flag);
+	char flag = getchar();
 	getchar();
 	switch(flag)
 	{
@@ -234,6 +238,7 @@ static void Exit1()
 
 void Error1()
 {
+	system("clear");
 	printf("input error ! please input again !\n");
 	sleep(1);	
 	ShowWelcome(); 
@@ -252,6 +257,7 @@ static void Choise(char ch)
 
 void Error2()
 {
+	system("clear");
 	printf("input error ! please input again !\n");
 	sleep(1);
 	ShowMenus(); 
@@ -443,19 +449,33 @@ void submit_modify(struct contact *con,char ch)
 	{
 		switch(ch)
 		{
-			case 'y':	modify_info(con);		break; 
-			case 'n':   show_option();			break;
-			default :   show_option();			break;
+			case 'y':	modify_info(con);			break; 
+			case 'n':   submit_cancel();			break;
+			default :   submit_cancel();			break;
 		}
 	}
 }
 
+void submit_cancel()
+{
+	int size = sendto(udpfd,"no",2,0,(struct sockaddr *)(&seraddr),sizeof(seraddr));
+	if(size < 0)
+	{
+		printf("sendto no error !\n");
+	}
+	show_option();
+}
 void modify_info(struct contact *con)
 {
 	if( con != NULL)
 	{
-		int size = sendto(udpfd,con,sizeof(struct contact),0,(struct sockaddr*)(&seraddr),sizeof(seraddr));
-		if(size < 0)
+		int size1 = sendto(udpfd,"yes",3,0,(struct sockaddr *)(&seraddr),sizeof(seraddr));
+		if(size1 < 0)
+		{
+			printf("sendto server yes error !\n");
+		}
+		int size2 = sendto(udpfd,con,sizeof(struct contact),0,(struct sockaddr*)(&seraddr),sizeof(seraddr));
+		if(size2 < 0)
 			printf("sendto error !\n");
 		else
 		{
@@ -795,7 +815,7 @@ void add_contactor(struct contact *contactor)
 			int size1 = recvfrom(udpfd,recvbuf,5,0,(struct sockaddr *)(&cliaddr),&length);
 			if(size1 < 0)
 			{
-				printf("recvfrom error !\n");
+				printf("recvfrom error\n");
 			}
 			else
 			{
@@ -859,6 +879,7 @@ void Add(int udpfd)
 void Exit2()
 {
 	fflush(stdin);
+	system("clear");
 	printf("\n\nSure exit or not(y/n):");
 	char ch = getchar();
 	getchar();
@@ -877,13 +898,11 @@ void ShowWelcome()
 		fflush(stdin);
 		system("clear");
 		puts("\t--------------------------------------------\n"); 
-		puts("\t*       welcom  to  address list!          *\n");
+		puts("\t*            welcom  to  you  !            *\n");
 		puts("\t--------------------------------------------\n");
-		puts("\t*                                          *\n"); 
 		puts("\t*               1.Login                    *\n");
 		puts("\t*               2.Register                 *\n");
 		puts("\t*               3.Exit                     *\n");
-		puts("\t*                                          *\n");
 		puts("\t--------------------------------------------\n");
 		printf("\t\tplease input your choise :[_]\b\b");
 		fflush(stdin);
@@ -893,21 +912,50 @@ void ShowWelcome()
 		break;
 	}
 }
-
+void show_view()
+{
+	while(1)
+	{
+		system("clear");
+		fflush(stdin);
+		puts("\t-----------------------------------\n");
+		puts("\t+             Options             +\n");
+		puts("\t-----------------------------------\n");
+		puts("\t+        1- Addresslist           +\n");
+		puts("\t+        2- Wechat                +\n");
+		puts("\t+        3- Exit                  +\n");
+		puts("\t-----------------------------------\n");
+		printf("\t\tplease input your choise[_]\b\b");
+		char ch = getchar();
+		getchar();
+		switch(ch)
+		{
+			case '1':  ShowMenus();  break;
+			case '2':  WeChat();     break;
+			case '3':  Exit2();      break;
+			default :  Error0();     break;
+		}
+	}
+}
+void WeChat()
+{
+	printf("waiting . . . . . . \n");
+	show_view();
+}
 void ShowMenus()
 {
 	while(1)
 	{
 		fflush(stdin);
 		system("clear");
-		puts("\t--------------------------------------------\n");
-		puts("\t*       welcom  to  address list!          *\n");
-		puts("\t--------------------------------------------\n");
-		puts("\t*               1.All                      *\n");
-		puts("\t*               2.Find                     *\n");
-		puts("\t*               3.Add                      *\n");
-		puts("\t*               4.Exit                     *\n");
-		puts("\t--------------------------------------------\n");
+		puts("\t-----------------------------------------\n");
+		puts("\t*       welcom  to  addresslist!        *\n");
+		puts("\t-----------------------------------------\n");
+		puts("\t*          1.Print_contact              *\n");
+		puts("\t*          2.Find_contact               *\n");
+		puts("\t*          3.Add_contact                *\n");
+		puts("\t*          4.Exit_system                *\n");
+		puts("\t-----------------------------------------\n");
 		printf("\t\tplease input your choise :[_]\b\b");
 		fflush(stdin);
 		char ch = getchar();
@@ -915,6 +963,14 @@ void ShowMenus()
 		ChoiseFunction(ch);
 		break;
 	}
+}
+
+void Error0()
+{
+	system("clear");
+	printf("enter  error ！please enter again !\n");
+	getchar();
+	show_view();
 }
 
 int main()
